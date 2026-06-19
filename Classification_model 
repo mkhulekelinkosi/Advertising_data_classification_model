@@ -1,0 +1,1261 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyMRJHHQhhn3ljI8okGZK/Ry",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/mkhulekelinkosi/Advertising_data_classification_model/blob/main/Classification_model%20\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "3dfk-RD-0lsi",
+        "outputId": "28a971c6-6a6a-46f4-c814-a6513bbd8b81"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "2.11.0+cpu\n"
+          ]
+        }
+      ],
+      "source": [
+        "import torch\n",
+        "print(torch.__version__)"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import pandas as pd\n",
+        "import numpy as np\n",
+        "from sklearn.preprocessing import LabelEncoder\n",
+        "import torch\n",
+        "import torch.nn as nn\n",
+        "import torch.optim as optim\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "from sklearn.preprocessing import StandardScaler"
+      ],
+      "metadata": {
+        "id": "qlzIanzm1mXa"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "\n",
+        "import random\n",
+        "import os\n",
+        "\n",
+        "# 1. Fix Python random seed\n",
+        "random.seed(42)\n",
+        "\n",
+        "# 2. Fix NumPy seed\n",
+        "np.random.seed(42)\n",
+        "\n",
+        "# 3. Fix PyTorch CPU seed\n",
+        "torch.manual_seed(42)\n",
+        "\n",
+        "# 4. Fix PyTorch GPU seed (if using CUDA)\n",
+        "torch.cuda.manual_seed(42)\n",
+        "torch.cuda.manual_seed_all(42)\n",
+        "\n",
+        "# 5. Ensure deterministic behavior (important)\n",
+        "torch.backends.cudnn.deterministic = True\n",
+        "torch.backends.cudnn.benchmark = False\n",
+        "\n",
+        "# 6. Optional: control environment hash randomness\n",
+        "os.environ['PYTHONHASHSEED'] = str(42)"
+      ],
+      "metadata": {
+        "id": "astVgif01_hG"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from google.colab import files\n",
+        "uploaded = files.upload()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 108
+        },
+        "id": "b8g-1KZ3A6ST",
+        "outputId": "cf01a969-ae86-4f6c-d2b4-bf7a2d5a24ce"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<IPython.core.display.HTML object>"
+            ],
+            "text/html": [
+              "\n",
+              "     <input type=\"file\" id=\"files-28800444-cb20-44e5-9dd3-a85dd7aded50\" name=\"files[]\" multiple disabled\n",
+              "        style=\"border:none\" />\n",
+              "     <output id=\"result-28800444-cb20-44e5-9dd3-a85dd7aded50\">\n",
+              "      Upload widget is only available when the cell has been executed in the\n",
+              "      current browser session. Please rerun this cell to enable.\n",
+              "      </output>\n",
+              "      <script>// Copyright 2017 Google LLC\n",
+              "//\n",
+              "// Licensed under the Apache License, Version 2.0 (the \"License\");\n",
+              "// you may not use this file except in compliance with the License.\n",
+              "// You may obtain a copy of the License at\n",
+              "//\n",
+              "//      http://www.apache.org/licenses/LICENSE-2.0\n",
+              "//\n",
+              "// Unless required by applicable law or agreed to in writing, software\n",
+              "// distributed under the License is distributed on an \"AS IS\" BASIS,\n",
+              "// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n",
+              "// See the License for the specific language governing permissions and\n",
+              "// limitations under the License.\n",
+              "\n",
+              "/**\n",
+              " * @fileoverview Helpers for google.colab Python module.\n",
+              " */\n",
+              "(function(scope) {\n",
+              "function span(text, styleAttributes = {}) {\n",
+              "  const element = document.createElement('span');\n",
+              "  element.textContent = text;\n",
+              "  for (const key of Object.keys(styleAttributes)) {\n",
+              "    element.style[key] = styleAttributes[key];\n",
+              "  }\n",
+              "  return element;\n",
+              "}\n",
+              "\n",
+              "// Max number of bytes which will be uploaded at a time.\n",
+              "const MAX_PAYLOAD_SIZE = 100 * 1024;\n",
+              "\n",
+              "function _uploadFiles(inputId, outputId) {\n",
+              "  const steps = uploadFilesStep(inputId, outputId);\n",
+              "  const outputElement = document.getElementById(outputId);\n",
+              "  // Cache steps on the outputElement to make it available for the next call\n",
+              "  // to uploadFilesContinue from Python.\n",
+              "  outputElement.steps = steps;\n",
+              "\n",
+              "  return _uploadFilesContinue(outputId);\n",
+              "}\n",
+              "\n",
+              "// This is roughly an async generator (not supported in the browser yet),\n",
+              "// where there are multiple asynchronous steps and the Python side is going\n",
+              "// to poll for completion of each step.\n",
+              "// This uses a Promise to block the python side on completion of each step,\n",
+              "// then passes the result of the previous step as the input to the next step.\n",
+              "function _uploadFilesContinue(outputId) {\n",
+              "  const outputElement = document.getElementById(outputId);\n",
+              "  const steps = outputElement.steps;\n",
+              "\n",
+              "  const next = steps.next(outputElement.lastPromiseValue);\n",
+              "  return Promise.resolve(next.value.promise).then((value) => {\n",
+              "    // Cache the last promise value to make it available to the next\n",
+              "    // step of the generator.\n",
+              "    outputElement.lastPromiseValue = value;\n",
+              "    return next.value.response;\n",
+              "  });\n",
+              "}\n",
+              "\n",
+              "/**\n",
+              " * Generator function which is called between each async step of the upload\n",
+              " * process.\n",
+              " * @param {string} inputId Element ID of the input file picker element.\n",
+              " * @param {string} outputId Element ID of the output display.\n",
+              " * @return {!Iterable<!Object>} Iterable of next steps.\n",
+              " */\n",
+              "function* uploadFilesStep(inputId, outputId) {\n",
+              "  const inputElement = document.getElementById(inputId);\n",
+              "  inputElement.disabled = false;\n",
+              "\n",
+              "  const outputElement = document.getElementById(outputId);\n",
+              "  outputElement.innerHTML = '';\n",
+              "\n",
+              "  const pickedPromise = new Promise((resolve) => {\n",
+              "    inputElement.addEventListener('change', (e) => {\n",
+              "      resolve(e.target.files);\n",
+              "    });\n",
+              "  });\n",
+              "\n",
+              "  const cancel = document.createElement('button');\n",
+              "  inputElement.parentElement.appendChild(cancel);\n",
+              "  cancel.textContent = 'Cancel upload';\n",
+              "  const cancelPromise = new Promise((resolve) => {\n",
+              "    cancel.onclick = () => {\n",
+              "      resolve(null);\n",
+              "    };\n",
+              "  });\n",
+              "\n",
+              "  // Wait for the user to pick the files.\n",
+              "  const files = yield {\n",
+              "    promise: Promise.race([pickedPromise, cancelPromise]),\n",
+              "    response: {\n",
+              "      action: 'starting',\n",
+              "    }\n",
+              "  };\n",
+              "\n",
+              "  cancel.remove();\n",
+              "\n",
+              "  // Disable the input element since further picks are not allowed.\n",
+              "  inputElement.disabled = true;\n",
+              "\n",
+              "  if (!files) {\n",
+              "    return {\n",
+              "      response: {\n",
+              "        action: 'complete',\n",
+              "      }\n",
+              "    };\n",
+              "  }\n",
+              "\n",
+              "  for (const file of files) {\n",
+              "    const li = document.createElement('li');\n",
+              "    li.append(span(file.name, {fontWeight: 'bold'}));\n",
+              "    li.append(span(\n",
+              "        `(${file.type || 'n/a'}) - ${file.size} bytes, ` +\n",
+              "        `last modified: ${\n",
+              "            file.lastModifiedDate ? file.lastModifiedDate.toLocaleDateString() :\n",
+              "                                    'n/a'} - `));\n",
+              "    const percent = span('0% done');\n",
+              "    li.appendChild(percent);\n",
+              "\n",
+              "    outputElement.appendChild(li);\n",
+              "\n",
+              "    const fileDataPromise = new Promise((resolve) => {\n",
+              "      const reader = new FileReader();\n",
+              "      reader.onload = (e) => {\n",
+              "        resolve(e.target.result);\n",
+              "      };\n",
+              "      reader.readAsArrayBuffer(file);\n",
+              "    });\n",
+              "    // Wait for the data to be ready.\n",
+              "    let fileData = yield {\n",
+              "      promise: fileDataPromise,\n",
+              "      response: {\n",
+              "        action: 'continue',\n",
+              "      }\n",
+              "    };\n",
+              "\n",
+              "    // Use a chunked sending to avoid message size limits. See b/62115660.\n",
+              "    let position = 0;\n",
+              "    do {\n",
+              "      const length = Math.min(fileData.byteLength - position, MAX_PAYLOAD_SIZE);\n",
+              "      const chunk = new Uint8Array(fileData, position, length);\n",
+              "      position += length;\n",
+              "\n",
+              "      const base64 = btoa(String.fromCharCode.apply(null, chunk));\n",
+              "      yield {\n",
+              "        response: {\n",
+              "          action: 'append',\n",
+              "          file: file.name,\n",
+              "          data: base64,\n",
+              "        },\n",
+              "      };\n",
+              "\n",
+              "      let percentDone = fileData.byteLength === 0 ?\n",
+              "          100 :\n",
+              "          Math.round((position / fileData.byteLength) * 100);\n",
+              "      percent.textContent = `${percentDone}% done`;\n",
+              "\n",
+              "    } while (position < fileData.byteLength);\n",
+              "  }\n",
+              "\n",
+              "  // All done.\n",
+              "  yield {\n",
+              "    response: {\n",
+              "      action: 'complete',\n",
+              "    }\n",
+              "  };\n",
+              "}\n",
+              "\n",
+              "scope.google = scope.google || {};\n",
+              "scope.google.colab = scope.google.colab || {};\n",
+              "scope.google.colab._files = {\n",
+              "  _uploadFiles,\n",
+              "  _uploadFilesContinue,\n",
+              "};\n",
+              "})(self);\n",
+              "</script> "
+            ]
+          },
+          "metadata": {}
+        },
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Saving marketing_data_updated.xlsx to marketing_data_updated (2).xlsx\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "df = pd.read_excel(\"marketing_data_updated.xlsx\")\n",
+        "df = pd.get_dummies(df, columns=[\"Education\"])\n",
+        "df = pd.get_dummies(df, columns=[\"Marital_Status\"])\n",
+        "le = LabelEncoder()\n",
+        "df[\"Campaign\"] = le.fit_transform(df[\"Campaign\"])\n",
+        "print(le.classes_)\n",
+        "\n",
+        "df.head(5)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 307
+        },
+        "id": "T0zKzN4QCRYO",
+        "outputId": "b8a4d436-87d4-4793-8bb6-93576fdd6d4c"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "['AcceptedCmp1' 'AcceptedCmp2' 'AcceptedCmp3' 'AcceptedCmp4'\n",
+            " 'AcceptedCmp5' 'Response']\n"
+          ]
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "   cut_id  Age  Income  Kidhome  Teenhome  Recency  Customer_Days  MntWines  \\\n",
+              "0       1   63   58138        0         0       58           2822       635   \n",
+              "1       2   66   46344        1         1       38           2272        11   \n",
+              "2       3   55   71613        0         0       26           2471       426   \n",
+              "3       4   36   26646        1         0       26           2298        11   \n",
+              "4       5   39   58293        1         0       94           2320       173   \n",
+              "\n",
+              "   MntFruits  MntMeatProducts  ...  Education_2n Cycle  Education_Basic  \\\n",
+              "0         88              546  ...               False            False   \n",
+              "1          1                6  ...               False            False   \n",
+              "2         49              127  ...               False            False   \n",
+              "3          4               20  ...               False            False   \n",
+              "4         43              118  ...               False            False   \n",
+              "\n",
+              "   Education_Graduation  Education_Master  Education_PhD  \\\n",
+              "0                  True             False          False   \n",
+              "1                  True             False          False   \n",
+              "2                  True             False          False   \n",
+              "3                  True             False          False   \n",
+              "4                 False             False           True   \n",
+              "\n",
+              "   Marital_Status_Divorced  Marital_Status_Married  Marital_Status_Single  \\\n",
+              "0                    False                   False                   True   \n",
+              "1                    False                   False                   True   \n",
+              "2                    False                   False                  False   \n",
+              "3                    False                   False                  False   \n",
+              "4                    False                    True                  False   \n",
+              "\n",
+              "   Marital_Status_Together  Marital_Status_Widow  \n",
+              "0                    False                 False  \n",
+              "1                    False                 False  \n",
+              "2                     True                 False  \n",
+              "3                     True                 False  \n",
+              "4                    False                 False  \n",
+              "\n",
+              "[5 rows x 33 columns]"
+            ],
+            "text/html": [
+              "\n",
+              "  <div id=\"df-56f4e050-3cba-4746-8251-7514f71a1d6e\" class=\"colab-df-container\">\n",
+              "    <div>\n",
+              "<style scoped>\n",
+              "    .dataframe tbody tr th:only-of-type {\n",
+              "        vertical-align: middle;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe tbody tr th {\n",
+              "        vertical-align: top;\n",
+              "    }\n",
+              "\n",
+              "    .dataframe thead th {\n",
+              "        text-align: right;\n",
+              "    }\n",
+              "</style>\n",
+              "<table border=\"1\" class=\"dataframe\">\n",
+              "  <thead>\n",
+              "    <tr style=\"text-align: right;\">\n",
+              "      <th></th>\n",
+              "      <th>cut_id</th>\n",
+              "      <th>Age</th>\n",
+              "      <th>Income</th>\n",
+              "      <th>Kidhome</th>\n",
+              "      <th>Teenhome</th>\n",
+              "      <th>Recency</th>\n",
+              "      <th>Customer_Days</th>\n",
+              "      <th>MntWines</th>\n",
+              "      <th>MntFruits</th>\n",
+              "      <th>MntMeatProducts</th>\n",
+              "      <th>...</th>\n",
+              "      <th>Education_2n Cycle</th>\n",
+              "      <th>Education_Basic</th>\n",
+              "      <th>Education_Graduation</th>\n",
+              "      <th>Education_Master</th>\n",
+              "      <th>Education_PhD</th>\n",
+              "      <th>Marital_Status_Divorced</th>\n",
+              "      <th>Marital_Status_Married</th>\n",
+              "      <th>Marital_Status_Single</th>\n",
+              "      <th>Marital_Status_Together</th>\n",
+              "      <th>Marital_Status_Widow</th>\n",
+              "    </tr>\n",
+              "  </thead>\n",
+              "  <tbody>\n",
+              "    <tr>\n",
+              "      <th>0</th>\n",
+              "      <td>1</td>\n",
+              "      <td>63</td>\n",
+              "      <td>58138</td>\n",
+              "      <td>0</td>\n",
+              "      <td>0</td>\n",
+              "      <td>58</td>\n",
+              "      <td>2822</td>\n",
+              "      <td>635</td>\n",
+              "      <td>88</td>\n",
+              "      <td>546</td>\n",
+              "      <td>...</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>True</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>True</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>1</th>\n",
+              "      <td>2</td>\n",
+              "      <td>66</td>\n",
+              "      <td>46344</td>\n",
+              "      <td>1</td>\n",
+              "      <td>1</td>\n",
+              "      <td>38</td>\n",
+              "      <td>2272</td>\n",
+              "      <td>11</td>\n",
+              "      <td>1</td>\n",
+              "      <td>6</td>\n",
+              "      <td>...</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>True</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>True</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>2</th>\n",
+              "      <td>3</td>\n",
+              "      <td>55</td>\n",
+              "      <td>71613</td>\n",
+              "      <td>0</td>\n",
+              "      <td>0</td>\n",
+              "      <td>26</td>\n",
+              "      <td>2471</td>\n",
+              "      <td>426</td>\n",
+              "      <td>49</td>\n",
+              "      <td>127</td>\n",
+              "      <td>...</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>True</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>True</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>3</th>\n",
+              "      <td>4</td>\n",
+              "      <td>36</td>\n",
+              "      <td>26646</td>\n",
+              "      <td>1</td>\n",
+              "      <td>0</td>\n",
+              "      <td>26</td>\n",
+              "      <td>2298</td>\n",
+              "      <td>11</td>\n",
+              "      <td>4</td>\n",
+              "      <td>20</td>\n",
+              "      <td>...</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>True</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>True</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "    <tr>\n",
+              "      <th>4</th>\n",
+              "      <td>5</td>\n",
+              "      <td>39</td>\n",
+              "      <td>58293</td>\n",
+              "      <td>1</td>\n",
+              "      <td>0</td>\n",
+              "      <td>94</td>\n",
+              "      <td>2320</td>\n",
+              "      <td>173</td>\n",
+              "      <td>43</td>\n",
+              "      <td>118</td>\n",
+              "      <td>...</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>True</td>\n",
+              "      <td>False</td>\n",
+              "      <td>True</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "      <td>False</td>\n",
+              "    </tr>\n",
+              "  </tbody>\n",
+              "</table>\n",
+              "<p>5 rows × 33 columns</p>\n",
+              "</div>\n",
+              "    <div class=\"colab-df-buttons\">\n",
+              "\n",
+              "  <div class=\"colab-df-container\">\n",
+              "    <button class=\"colab-df-convert\" onclick=\"convertToInteractive('df-56f4e050-3cba-4746-8251-7514f71a1d6e')\"\n",
+              "            title=\"Convert this dataframe to an interactive table.\"\n",
+              "            style=\"display:none;\">\n",
+              "\n",
+              "  <svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\" viewBox=\"0 -960 960 960\">\n",
+              "    <path d=\"M120-120v-720h720v720H120Zm60-500h600v-160H180v160Zm220 220h160v-160H400v160Zm0 220h160v-160H400v160ZM180-400h160v-160H180v160Zm440 0h160v-160H620v160ZM180-180h160v-160H180v160Zm440 0h160v-160H620v160Z\"/>\n",
+              "  </svg>\n",
+              "    </button>\n",
+              "\n",
+              "  <style>\n",
+              "    .colab-df-container {\n",
+              "      display:flex;\n",
+              "      gap: 12px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert {\n",
+              "      background-color: #E8F0FE;\n",
+              "      border: none;\n",
+              "      border-radius: 50%;\n",
+              "      cursor: pointer;\n",
+              "      display: none;\n",
+              "      fill: #1967D2;\n",
+              "      height: 32px;\n",
+              "      padding: 0 0 0 0;\n",
+              "      width: 32px;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-convert:hover {\n",
+              "      background-color: #E2EBFA;\n",
+              "      box-shadow: 0px 1px 2px rgba(60, 64, 67, 0.3), 0px 1px 3px 1px rgba(60, 64, 67, 0.15);\n",
+              "      fill: #174EA6;\n",
+              "    }\n",
+              "\n",
+              "    .colab-df-buttons div {\n",
+              "      margin-bottom: 4px;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert {\n",
+              "      background-color: #3B4455;\n",
+              "      fill: #D2E3FC;\n",
+              "    }\n",
+              "\n",
+              "    [theme=dark] .colab-df-convert:hover {\n",
+              "      background-color: #434B5C;\n",
+              "      box-shadow: 0px 1px 3px 1px rgba(0, 0, 0, 0.15);\n",
+              "      filter: drop-shadow(0px 1px 2px rgba(0, 0, 0, 0.3));\n",
+              "      fill: #FFFFFF;\n",
+              "    }\n",
+              "  </style>\n",
+              "\n",
+              "    <script>\n",
+              "      const buttonEl =\n",
+              "        document.querySelector('#df-56f4e050-3cba-4746-8251-7514f71a1d6e button.colab-df-convert');\n",
+              "      buttonEl.style.display =\n",
+              "        google.colab.kernel.accessAllowed ? 'block' : 'none';\n",
+              "\n",
+              "      async function convertToInteractive(key) {\n",
+              "        const element = document.querySelector('#df-56f4e050-3cba-4746-8251-7514f71a1d6e');\n",
+              "        const dataTable =\n",
+              "          await google.colab.kernel.invokeFunction('convertToInteractive',\n",
+              "                                                    [key], {});\n",
+              "        if (!dataTable) return;\n",
+              "\n",
+              "        const docLinkHtml = 'Like what you see? Visit the ' +\n",
+              "          '<a target=\"_blank\" href=https://colab.research.google.com/notebooks/data_table.ipynb>data table notebook</a>'\n",
+              "          + ' to learn more about interactive tables.';\n",
+              "        element.innerHTML = '';\n",
+              "        dataTable['output_type'] = 'display_data';\n",
+              "        await google.colab.output.renderOutput(dataTable, element);\n",
+              "        const docLink = document.createElement('div');\n",
+              "        docLink.innerHTML = docLinkHtml;\n",
+              "        element.appendChild(docLink);\n",
+              "      }\n",
+              "    </script>\n",
+              "  </div>\n",
+              "\n",
+              "\n",
+              "    </div>\n",
+              "  </div>\n"
+            ],
+            "application/vnd.google.colaboratory.intrinsic+json": {
+              "type": "dataframe",
+              "variable_name": "df"
+            }
+          },
+          "metadata": {},
+          "execution_count": 66
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "X = df.drop(\"Campaign\", axis=1)\n",
+        "y = df[\"Campaign\"]"
+      ],
+      "metadata": {
+        "id": "MeYRkCjWEvO4"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "The Data is loaded, but before it was loaded it was cleaned in another document, then in this document the data was edited to meet the standard of fitting Neural network Model which is converting qualitative data into numeric data and separating the input variables and output variable."
+      ],
+      "metadata": {
+        "id": "FWaigOSEFGMy"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "X_train, X_temp, y_train, y_temp = train_test_split(\n",
+        "    X,\n",
+        "    y,\n",
+        "    test_size=0.2,\n",
+        "    random_state=42,\n",
+        "    stratify=y,\n",
+        ")\n",
+        "\n",
+        "X_val, X_test, y_val, y_test = train_test_split(\n",
+        "    X_temp,\n",
+        "    y_temp,\n",
+        "    test_size=0.5,\n",
+        "    random_state=42,\n",
+        "    stratify=y_temp,\n",
+        ")"
+      ],
+      "metadata": {
+        "id": "yX1lIMuaFB6Q"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "scaler = StandardScaler()\n",
+        "\n",
+        "X_train = scaler.fit_transform(X_train)\n",
+        "X_val = scaler.transform(X_val)\n",
+        "X_test = scaler.transform(X_test)\n",
+        "\n",
+        "print(type(y_train))\n",
+        "\n",
+        "print(type(y_val))\n",
+        "print(type(y_test))"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "Z27uj74FFS4W",
+        "outputId": "1bfbc56a-1801-4aa1-a2d6-d742d03872a2"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "<class 'pandas.core.series.Series'>\n",
+            "<class 'pandas.core.series.Series'>\n",
+            "<class 'pandas.core.series.Series'>\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "In the two above code the data was split into training, validation, and test data. The model is fit on training data, the validation set is used to check generalization during training, and the test set is kept for the final evaluation. The data was also scaled by standardization and leakage was avoided.\n",
+        "\n",
+        "The data type of the standerdized datasets was also print out so that in the next code when converting to tensor its easy to use the right code, by right code its meant to convert the data type to tensor.series."
+      ],
+      "metadata": {
+        "id": "xaNJOFdbayZ3"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "X_train = torch.tensor(X_train, dtype=torch.float32)\n",
+        "X_val = torch.tensor(X_val, dtype=torch.float32)\n",
+        "X_test = torch.tensor(X_test, dtype=torch.float32)\n",
+        "\n",
+        "y_train = torch.tensor(y_train.values, dtype=torch.long)\n",
+        "\n",
+        "y_val = torch.tensor(y_val.values, dtype=torch.long)\n",
+        "y_test = torch.tensor(y_test.values, dtype=torch.long)"
+      ],
+      "metadata": {
+        "id": "mZ6hK9xTFiPi"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "class Model(nn.Module):\n",
+        "    def __init__(self, input_size, num_classes):\n",
+        "        super().__init__()\n",
+        "        self.network = nn.Sequential(\n",
+        "            nn.Linear(input_size, 16),\n",
+        "            nn.ReLU(),\n",
+        "            nn.Linear(16, 8),\n",
+        "            nn.ReLU(),\n",
+        "            nn.Linear(8, num_classes)\n",
+        "        )\n",
+        "\n",
+        "    def forward(self, x):\n",
+        "        return self.network(x)"
+      ],
+      "metadata": {
+        "id": "W1jdeR64F254"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "The Neuaral network model was fitted using the nn.Module rules or specifications. The model has 2 hidden layers and RelU was used as the activation function (to capture the nonlinear pattern) in all the 2 layers. The choice of neaurons in each layer were chosen at random. But to make the model better one can choose a larger nnumber of neauron or hidden layers, but keep in mind the the data used is not large enough, thus that also contributes to how well the model learns."
+      ],
+      "metadata": {
+        "id": "z-6AvpMnYjvj"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.utils.class_weight import compute_class_weight\n",
+        "classes = np.unique(y_train.numpy())\n",
+        "weights = compute_class_weight('balanced', classes=classes, y=y_train.numpy())\n",
+        "weights = torch.tensor(weights, dtype=torch.float32)\n",
+        "criterion = torch.nn.CrossEntropyLoss(weight=weights)\n",
+        "\n",
+        "input_size = X_train.shape[1]\n",
+        "num_classes = len(classes)\n",
+        "model = Model(input_size=input_size, num_classes=num_classes)\n",
+        "\n",
+        "\n",
+        "optimizer = torch.optim.Adam(model.parameters(), lr=0.001)"
+      ],
+      "metadata": {
+        "id": "Z5cLySw4GJZi"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "The code above is where the magic happens the categories where balanced using weights before using Adam which uses Gradient decent to learn. It stops learning when the mean squared is minimazed or close to zero. Adam was choosen because of how fast it learns on how it uses different learning rates."
+      ],
+      "metadata": {
+        "id": "OD0uY7QGGewr"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "epochs = 150\n",
+        "\n",
+        "for epoch in range(epochs):\n",
+        "    # ===== TRAINING PHASE =====\n",
+        "    model.train()\n",
+        "\n",
+        "    outputs = model(X_train)\n",
+        "    loss = criterion(outputs, y_train)\n",
+        "\n",
+        "    optimizer.zero_grad()\n",
+        "    loss.backward()\n",
+        "    optimizer.step()\n",
+        "\n",
+        "    # ===== VALIDATION PHASE =====\n",
+        "    if epoch % 10 == 0:\n",
+        "        model.eval()\n",
+        "\n",
+        "        with torch.no_grad():\n",
+        "            val_outputs = model(X_val)\n",
+        "            val_loss = criterion(val_outputs, y_val)\n",
+        "\n",
+        "            val_predictions = torch.argmax(val_outputs, dim=1)\n",
+        "            val_accuracy = (val_predictions == y_val).float().mean()\n",
+        "\n",
+        "        print(\n",
+        "            f\"Epoch {epoch}, \"\n",
+        "            f\"Train Loss: {loss.item():.4f}, \"\n",
+        "            f\"Val Loss: {val_loss.item():.4f}, \"\n",
+        "            f\"Val Acc: {val_accuracy.item():.4f}\"\n",
+        "        )"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "rCsfOhg1Go3O",
+        "outputId": "a3de9eef-4dd4-4e24-9ba3-51b7f0cc2443"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Epoch 0, Train Loss: 1.8236, Val Loss: 1.8357, Val Acc: 0.0455\n",
+            "Epoch 10, Train Loss: 1.7948, Val Loss: 1.8146, Val Acc: 0.0500\n",
+            "Epoch 20, Train Loss: 1.7657, Val Loss: 1.7916, Val Acc: 0.0727\n",
+            "Epoch 30, Train Loss: 1.7350, Val Loss: 1.7698, Val Acc: 0.0818\n",
+            "Epoch 40, Train Loss: 1.7047, Val Loss: 1.7467, Val Acc: 0.0864\n",
+            "Epoch 50, Train Loss: 1.6766, Val Loss: 1.7250, Val Acc: 0.1045\n",
+            "Epoch 60, Train Loss: 1.6495, Val Loss: 1.7073, Val Acc: 0.2682\n",
+            "Epoch 70, Train Loss: 1.6222, Val Loss: 1.6928, Val Acc: 0.3000\n",
+            "Epoch 80, Train Loss: 1.5938, Val Loss: 1.6797, Val Acc: 0.3091\n",
+            "Epoch 90, Train Loss: 1.5636, Val Loss: 1.6663, Val Acc: 0.3409\n",
+            "Epoch 100, Train Loss: 1.5316, Val Loss: 1.6518, Val Acc: 0.3636\n",
+            "Epoch 110, Train Loss: 1.4982, Val Loss: 1.6376, Val Acc: 0.3818\n",
+            "Epoch 120, Train Loss: 1.4602, Val Loss: 1.6245, Val Acc: 0.4000\n",
+            "Epoch 130, Train Loss: 1.4182, Val Loss: 1.6119, Val Acc: 0.4000\n",
+            "Epoch 140, Train Loss: 1.3756, Val Loss: 1.5980, Val Acc: 0.4091\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "model.eval()\n",
+        "\n",
+        "with torch.no_grad():\n",
+        "    outputs = model(X_test)\n",
+        "    predictions = torch.argmax(outputs, dim=1)\n",
+        "\n",
+        "    accuracy = (predictions == y_test).float().mean()\n",
+        "\n",
+        "    print(\"Accuracy:\", accuracy.item())"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "F_amrbb3HEGO",
+        "outputId": "79236199-1466-45af-e999-ae7af197ad93"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Accuracy: 0.438914030790329\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay\n",
+        "import matplotlib.pyplot as plt"
+      ],
+      "metadata": {
+        "id": "_9GP1jOIHVj2"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "model.eval()\n",
+        "\n",
+        "with torch.no_grad():\n",
+        "    outputs = model(X_test)\n",
+        "\n",
+        "    # Predicted class\n",
+        "    predictions = torch.argmax(outputs, dim=1)\n",
+        "\n",
+        "# Convert tensors to numpy arrays\n",
+        "y_true = y_test.numpy()\n",
+        "y_pred = predictions.numpy()\n",
+        "\n",
+        "# Create confusion matrix\n",
+        "cm = confusion_matrix(y_true, y_pred)\n",
+        "\n",
+        "print(cm)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "krofqX4OHbGd",
+        "outputId": "fafc847e-4234-43af-9034-6f6493d0536b"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "[[85 11  9 42 28  0]\n",
+            " [ 0  2  0  0  0  0]\n",
+            " [ 8  1  1  4  0  0]\n",
+            " [ 0  0  1  5  4  0]\n",
+            " [ 0  2  0  0  3  0]\n",
+            " [ 7  0  0  3  4  1]]\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "disp = ConfusionMatrixDisplay(confusion_matrix=cm)\n",
+        "\n",
+        "disp.plot()\n",
+        "plt.show()"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 449
+        },
+        "id": "W5EuhXAwHhbc",
+        "outputId": "82079d43-516f-4a66-80af-8219486393cd"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "text/plain": [
+              "<Figure size 640x480 with 2 Axes>"
+            ],
+            "image/png": "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\n"
+          },
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "from sklearn.metrics import classification_report\n",
+        "\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "HreGmHRpHpm7"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "report = classification_report(y_true, y_pred)\n",
+        "\n",
+        "print(report)"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "E1Zy9XV0K-IK",
+        "outputId": "da7a0593-3386-4574-9535-00343ce2d327"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       0.85      0.49      0.62       175\n",
+            "           1       0.12      1.00      0.22         2\n",
+            "           2       0.09      0.07      0.08        14\n",
+            "           3       0.09      0.50      0.16        10\n",
+            "           4       0.08      0.60      0.14         5\n",
+            "           5       1.00      0.07      0.12        15\n",
+            "\n",
+            "    accuracy                           0.44       221\n",
+            "   macro avg       0.37      0.45      0.22       221\n",
+            "weighted avg       0.75      0.44      0.52       221\n",
+            "\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "The precision in the first compaign is high meaning we have less false positives in that compaign  it is not guessing the values. Precision is how offten does the model predict the class correctly hence the model has high precision for class 0 - Campaign 1 with a recall of 49% meaning almost 50% of customers in Campaign 1 are captured by the model is good. The precision and the recall are good for class 0 - campaign 1 this is show by an f1- score of 62%.\n",
+        "\n",
+        "In this fitted model we are intrested in the precision of the model we interested in its ability to predict the class since it will be costly for the business to send an advertisement to a wrong person or group.\n",
+        "\n",
+        "Note this is the basic of neural network, thus the poor performance is due to that and also the data is not large.\n",
+        "\n",
+        "This imbalance has lead us to use maro average since it treats all classes equally regardless of size, thus this means it is still not a good model with a 37% precision meaning only 37% are predicted correctly which is a low  number with a macro recall of 45% meaning the model has captured less than half of the the customers across all classes thus looking at F1 scoreof 22% our model is worse than a random classifier\n",
+        "\n",
+        "\n",
+        "this is not a good model it will lead to a loss since it will send in majority wrong campaings to wrong individuals\n",
+        "\n",
+        "Ways in which we can increase accuracy is to regularize, increase eporch, adjust hyperparemeters, and include penalties in our model for class imbalance. But again a new model can be used that is less costly and depanding.d\n",
+        "\n"
+      ],
+      "metadata": {
+        "id": "iyl_3GD5b5bs"
+      }
+    },
+    {
+      "cell_type": "markdown",
+      "source": [
+        "AI was is also intergrated to give recommendations on how one can improve the model."
+      ],
+      "metadata": {
+        "id": "Ep2BZrxaqkEn"
+      }
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "prompt = f\"\"\"\n",
+        "You are a senior machine learning consultant.\n",
+        "\n",
+        "Analyze the following classification report.\n",
+        "\n",
+        "{report}\n",
+        "\n",
+        "Explain:\n",
+        "1. Model strengths\n",
+        "2. Model weaknesses\n",
+        "3. Possible causes\n",
+        "4. Recommendations to improve performance\n",
+        "\"\"\""
+      ],
+      "metadata": {
+        "id": "wnWA-DhGLQ51"
+      },
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "d0853637"
+      },
+      "source": [
+        "# Import the Python SDK\n",
+        "import google.generativeai as genai\n",
+        "# Used to securely store your API key\n",
+        "from google.colab import userdata\n",
+        "\n",
+        "# Retrieve the API key from Colab's secrets manager\n",
+        "GOOGLE_API_KEY = userdata.get('GOOGLE_API_KEY')\n",
+        "genai.configure(api_key=GOOGLE_API_KEY)"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "10d88e1c"
+      },
+      "source": [
+        "# Initialize the Gemini API\n",
+        "gemini_model = genai.GenerativeModel('gemini-2.5-flash')"
+      ],
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 1651
+        },
+        "id": "55e4fcab",
+        "outputId": "e9d872dc-73af-4440-9518-5aa53ad01952"
+      },
+      "source": [
+        "response = gemini_model.generate_content(prompt)\n",
+        "print(response.text)"
+      ],
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Okay, let's break down this classification report from a senior ML consultant's perspective.\n",
+            "\n",
+            "---\n",
+            "\n",
+            "### Classification Report Analysis: Multi-Class Classifier\n",
+            "\n",
+            "**Executive Summary:**\n",
+            "\n",
+            "The current classification model exhibits severely imbalanced performance, heavily favoring the majority class (Class 0) while struggling significantly with all minority classes. The overall accuracy of 44% is misleading due to this imbalance. The low macro-averaged F1-score of 0.22 is a more accurate reflection of the model's poor generalization capabilities across all classes. Critical issues include a severe lack of data for several classes and a model that appears to be biased or simply unable to learn distinct patterns for the less frequent categories.\n",
+            "\n",
+            "---\n",
+            "\n",
+            "**Detailed Analysis:**\n",
+            "\n",
+            "### 1. Model Strengths\n",
+            "\n",
+            "Despite the overall poor performance, there are a few notable aspects:\n",
+            "\n",
+            "*   **Strong Performance on Class 0 (Majority Class):**\n",
+            "    *   **High Precision (0.85):** When the model predicts an instance is Class 0, it is correct 85% of the time. This indicates a good ability to *confirm* Class 0 instances and minimize false positives for this class.\n",
+            "    *   **Reasonable F1-score (0.62):** While recall is only moderate, the high precision combined with 49% recall makes Class 0 the best-performing class by a significant margin. If identifying Class 0 correctly is paramount and false positives for Class 0 are costly, this is a relative strength.\n",
+            "*   **Specific Extreme Behaviors (Context-Dependent Strengths):**\n",
+            "    *   **Perfect Recall for Class 1 (1.00):** The model correctly identifies *all* actual instances of Class 1. If missing *any* Class 1 is catastrophic (e.g., rare disease detection, critical fault alarm), this characteristic could be beneficial, despite the horrible precision.\n",
+            "    *   **Perfect Precision for Class 5 (1.00):** When the model *does* predict Class 5, it is always correct. If false positives for Class 5 are extremely costly or unacceptable (e.g., triggering a very expensive action), this characteristic ensures that any positive prediction is reliable, even though most true instances are missed.\n",
+            "\n",
+            "### 2. Model Weaknesses\n",
+            "\n",
+            "The weaknesses are significant and pervasive:\n",
+            "\n",
+            "*   **Severe Class Imbalance Impact:** The most critical weakness. The model is effectively failing to learn or generalize for minority classes, leading to an extremely low macro-averaged F1-score (0.22).\n",
+            "*   **Poor Performance on Minority Classes (Generalization Failure):**\n",
+            "    *   **Classes 2, 3, 4:** These classes show universally poor performance with low precision, recall, and F1-scores (0.08, 0.16, 0.14 respectively). The model has little to no understanding of what defines these classes.\n",
+            "    *   **Class 1 (Horrible Precision, 0.12):** Despite perfect recall, the extremely low precision means that for every 1 correct prediction of Class 1, there are approximately 7-8 incorrect predictions (false positives). The model is \"over-predicting\" Class 1.\n",
+            "    *   **Class 5 (Horrible Recall, 0.07):** Despite perfect precision, the extremely low recall means the model misses almost all (93%) actual instances of Class 5. The model is extremely conservative and \"under-predicting\" Class 5.\n",
+            "*   **Misleading Accuracy:** The 44% accuracy is primarily driven by the correct classification of Class 0, which constitutes nearly 80% (175/221) of the dataset. This metric gives a false sense of security regarding the model's overall utility.\n",
+            "*   **Bias Towards Majority Class:** The model clearly biases predictions towards Class 0 or struggles to differentiate minority classes from Class 0, likely due to optimization for overall accuracy or simply insufficient training data for rare classes.\n",
+            "\n",
+            "### 3. Possible Causes\n",
+            "\n",
+            "The dramatic performance disparity points to several likely culprits:\n",
+            "\n",
+            "*   **Extreme Class Imbalance:** This is the *dominant* factor.\n",
+            "    *   **Insufficient Data for Minority Classes:** Classes 1 (2 samples), 4 (5 samples), 3 (10 samples), 2 (14 samples), and 5 (15 samples) have critically low numbers of training examples. The model simply doesn't have enough information to learn robust patterns for these classes.\n",
+            "    *   **Model Optimization Bias:** Many classification algorithms (especially without specific handling for imbalance) implicitly optimize for overall accuracy. With a dominant majority class, the easiest way to achieve this is to correctly classify the majority class and either ignore or misclassify the minority classes.\n",
+            "*   **Lack of Discriminative Features:** The current features might not be strong enough to differentiate between the minority classes, or between minority classes and the majority class. The model might be struggling to find clear boundaries.\n",
+            "*   **Inappropriate Model Choice/Hyperparameters:**\n",
+            "    *   The chosen model might not be robust to highly imbalanced datasets.\n",
+            "    *   Default hyperparameters are rarely optimal, and without proper tuning (especially considering imbalance), the model can perform poorly.\n",
+            "    *   The loss function used might not be appropriate for multi-class imbalanced classification.\n",
+            "*   **Data Quality Issues:**\n",
+            "    *   **Noisy or Mislabeled Data:** Especially in the small minority classes, even a few mislabeled samples can significantly impact learning.\n",
+            "    *   **Feature Scaling/Preprocessing:** Lack of proper scaling or preprocessing could hinder the model's ability to learn effectively.\n",
+            "*   **Over-regularization or Under-fitting:**\n",
+            "    *   For classes with low recall (like Class 5), the model might be too conservative (over-regularized or under-fit to these classes), missing most instances.\n",
+            "    *   For classes with low precision (like Class 1), the model might be over-generalizing from very few examples, leading to many false positives.\n",
+            "\n",
+            "### 4. Recommendations to Improve Performance\n",
+            "\n",
+            "Addressing this requires a multi-faceted approach, with a strong focus on the class imbalance problem:\n",
+            "\n",
+            "1.  **Address Class Imbalance (Highest Priority):**\n",
+            "    *   **Resampling Techniques:**\n",
+            "        *   **Oversampling Minority Classes:** Use techniques like SMOTE (Synthetic Minority Over-sampling Technique), ADASYN, or Borderline-SMOTE to create synthetic samples for classes 1, 2, 3, 4, 5.\n",
+            "        *   **Undersampling Majority Class:** If the dataset is very large and you can afford to lose some information, randomly undersample Class 0 to reduce its dominance. Often, a combination (e.g., SMOTE + Tomek Links, SMOTE + ENN) works best.\n",
+            "    *   **Cost-Sensitive Learning:** Modify the training algorithm to assign a higher penalty (cost) for misclassifying minority classes. Many models (e.g., SVM, Logistic Regression, XGBoost, LightGBM) have `class_weight` parameters or similar mechanisms.\n",
+            "    *   **Ensemble Methods for Imbalance:** Explore ensemble methods specifically designed for imbalanced data, such as BalancedBaggingClassifier, EasyEnsemble, or RUSBoost.\n",
+            "\n",
+            "2.  **Data Acquisition:**\n",
+            "    *   **Gather More Data:** The most direct solution, if feasible, is to collect more data for the minority classes. Even small increases could significantly help classes with only 2 or 5 samples.\n",
+            "\n",
+            "3.  **Feature Engineering and Selection:**\n",
+            "    *   **Domain Expertise:** Consult with domain experts to identify features that are highly discriminative for the minority classes.\n",
+            "    *   **Feature Importance Analysis:** Use techniques to understand which features are most important.\n",
+            "    *   **Generate New Features:** Create interaction terms, polynomial features, or other transformations that might better highlight differences between classes.\n",
+            "    *   **Feature Scaling and Preprocessing:** Ensure all numerical features are properly scaled (e.g., StandardScaler, MinMaxScaler) and categorical features are appropriately encoded.\n",
+            "\n",
+            "4.  **Model Selection and Hyperparameter Tuning:**\n",
+            "    *   **Explore Different Models:** Consider models that are inherently more robust to imbalance, such as:\n",
+            "        *   **Tree-based models (XGBoost, LightGBM, Random Forest):** These can perform well, especially when combined with `scale_pos_weight` (for binary or one-vs-rest approaches) or `class_weight` parameters.\n",
+            "        *   **Support Vector Machines (SVMs):** With `class_weight='balanced'`.\n",
+            "    *   **Hyperparameter Tuning:** Systematically tune hyperparameters using grid search or random search, but crucially, optimize for appropriate metrics like `macro-averaged F1-score` or `precision-recall AUC` on a *validation set*, not just accuracy.\n",
+            "    *   **Cross-Validation:** Use `StratifiedKFold` to ensure each fold has a representative proportion of all classes, especially minority classes, during training and evaluation.\n",
+            "\n",
+            "5.  **Evaluation Metrics and Error Analysis:**\n",
+            "    *   **Focus on Relevant Metrics:** Prioritize macro-averaged F1-score, weighted F1-score, Precision-Recall curves, and individual class metrics. Accuracy is largely irrelevant here.\n",
+            "    *   **Business Context:** Understand the business implications of false positives vs. false negatives for *each* class. This will guide which metrics (precision vs. recall) are more critical to optimize for.\n",
+            "    *   **Qualitative Error Analysis:** Manually examine misclassified samples from the minority classes. What characteristics do they share? Why are they being confused with Class 0 or other classes? This can reveal hidden patterns or issues.\n",
+            "\n",
+            "6.  **Consider a Hierarchical or One-vs-Rest Approach (Advanced):**\n",
+            "    *   For extremely rare classes, sometimes a one-vs-rest approach (training a binary classifier for each class) can be beneficial, especially if some classes are highly distinct.\n",
+            "    *   A hierarchical approach might first classify into major groups, then refine within those groups.\n",
+            "\n",
+            "By systematically addressing these points, particularly the severe class imbalance and lack of data for minority classes, the model's ability to generalize and correctly classify all types of instances should significantly improve.\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
